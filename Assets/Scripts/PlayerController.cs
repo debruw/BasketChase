@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
 using TapticPlugin;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -17,6 +18,8 @@ public class PlayerController : MonoBehaviour
     public GameObject currentBall;
     public Camera cam;
     public Transform ballTarget;
+    public GameObject World;
+    public Slider ForceSlider;
 
     void Awake()
     {
@@ -30,28 +33,31 @@ public class PlayerController : MonoBehaviour
     private Vector3 endPos; //mouse slide movement end pos
     public float zDistance = 30.0f;//z distance
     private bool isThrown;
+    public bool isClickedForBall = false;
     void Update()
     {
         if (!GameManager.Instance.isGameStarted)
         {
             return;
         }
-        transform.position += transform.forward * m_moveSpeed * Time.deltaTime;
+        World.transform.position -= transform.forward * m_moveSpeed * Time.deltaTime;
 
 #if UNITY_EDITOR
         if (currentBall != null)
         {
             if (Input.GetMouseButtonDown(0))
             {
+                isClickedForBall = true;
                 //get start mouse position
                 Vector3 mousePos = Input.mousePosition * -1.0f;
                 mousePos.z = zDistance; //add z distance
 
                 startPos = Camera.main.ScreenToWorldPoint(mousePos);
             }
-
-            if (Input.GetMouseButtonUp(0))
+            else if (Input.GetMouseButtonUp(0) && isClickedForBall)
             {
+                isClickedForBall = false;
+                Debug.Log(isClickedForBall);
                 //get release mouse position
                 Vector3 mousePos = Input.mousePosition * -1.0f;
                 mousePos.z = zDistance; //add z distance
@@ -61,12 +67,50 @@ public class PlayerController : MonoBehaviour
                 endPos.z = Camera.main.nearClipPlane; //removing this breaks stuff,no idea why though
 
                 Vector3 throwDir = (startPos - endPos).normalized;//get throw direction based on start and end pos
-                Debug.Log("Throw dir : " + (startPos - endPos));
-                currentBall.GetComponent<Collectable>().ActivateThrowProperties(GetComponent<Collider>());
-                ThrowBall(ballTarget.position/* + new Vector3(0, 0, .001f)*/);
-                currentBall = null;
+                ForceSlider.value = 0;
+
+                if ((startPos - endPos).y > GameManager.Instance.currentZDistance - 2 && (startPos - endPos).y < GameManager.Instance.currentZDistance + 2)
+                {
+                    if (GameManager.Instance.currentBallcount != GameManager.Instance.maxBallCount)
+                    {
+                        currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
+                        m_animator.SetTrigger("Throw");
+                        ThrowBall(ballTarget.position);
+                        currentBall = null;
+                    }
+                    else if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount)
+                    {//Last shot. Make dunk
+                        m_animator.SetTrigger("Dunk");
+                    }
+                }
+                else if ((startPos - endPos).y < GameManager.Instance.currentZDistance - 2)
+                {
+                    currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
+                    m_animator.SetTrigger("Throw");
+                    ThrowBall(ballTarget.position + new Vector3(0, 0, Random.Range(-2f, 0f)));
+                    currentBall = null;
+                }
+                else if ((startPos - endPos).y > GameManager.Instance.currentZDistance + 2)
+                {
+                    currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
+                    m_animator.SetTrigger("Throw");
+                    ThrowBall(ballTarget.position + new Vector3(0, 0, Random.Range(0f, 2f)));
+                    currentBall = null;
+                }
 
                 isThrown = true;
+            }
+            else if (Input.GetMouseButton(0) && isClickedForBall)
+            {
+                //get release mouse position
+                Vector3 mousePos = Input.mousePosition * -1.0f;
+                mousePos.z = zDistance; //add z distance
+
+                // convert mouse position to world position
+                endPos = Camera.main.ScreenToWorldPoint(mousePos);
+                endPos.z = Camera.main.nearClipPlane; //removing this breaks stuff,no idea why though
+
+                ForceSlider.value = (startPos - endPos).y / (GameManager.Instance.currentZDistance * 2);
             }
             return;
         }
@@ -137,7 +181,7 @@ public class PlayerController : MonoBehaviour
     public void ThrowBall(Vector3 target)
     {
         Physics.IgnoreCollision(currentBall.GetComponent<Collider>(), GetComponent<Collider>(), true);
-        currentBall.GetComponent<Collectable>().ActivateThrowProperties(GetComponent<Collider>());
+        currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
         currentBall.GetComponent<Launcher>().Launch(target, m_moveSpeed);
     }
 
@@ -168,7 +212,7 @@ public class PlayerController : MonoBehaviour
                 TapticManager.Impact(ImpactFeedback.Light);
             SoundManager.Instance.playSound(SoundManager.GameSounds.Collect);
             Destroy(Instantiate(PickUpParticle, collectable.transform.position, Quaternion.identity), 2f);
-            collectable.GetComponent<Collectable>().DeActivateThrowProperties();
+            collectable.GetComponent<Collectable>().CollectedProperties();
             collectable.transform.parent = CarryObject;
 
             collectable.transform.localPosition = Vector3.zero;
@@ -177,5 +221,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
+    public void ReleaseBall()
+    {
+        currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
+        currentBall = null;
+    }
 }

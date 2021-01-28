@@ -14,6 +14,8 @@ public class BasketPot : MonoBehaviour
 
     [SerializeField] private float m_moveSpeed = 12;
 
+    public GameObject netCollider;
+
     void Awake()
     {
         ragdollRigidbodies = metarig.GetComponentsInChildren<Rigidbody>();
@@ -27,8 +29,7 @@ public class BasketPot : MonoBehaviour
         {
             item.enabled = false;
         }
-        m_rigidBody.useGravity = true;
-        m_rigidBody.isKinematic = false;
+        netCollider.GetComponent<Collider>().enabled = true;
     }
 
     private void Update()
@@ -37,7 +38,10 @@ public class BasketPot : MonoBehaviour
         {
             return;
         }
-        transform.position = new Vector3(transform.position.x, transform.position.y, playerTr.position.z + GameManager.Instance.currentZDistance);
+        //if (transform.position.y < -0.121f)
+        //{
+        //    transform.position = new Vector3(transform.position.x, -0.121f, playerTr.position.z + GameManager.Instance.currentZDistance);
+        //}
     }
 
     public void ActivateRagdoll()

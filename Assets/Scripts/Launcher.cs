@@ -27,7 +27,7 @@ public class Launcher : MonoBehaviour
     {
         float displacementY = target.y - rb.position.y;
         float time = Mathf.Sqrt(-2 * h / Physics.gravity.y) + Mathf.Sqrt(2 * (displacementY - h) / Physics.gravity.y);
-        target = new Vector3(target.x, target.y, target.z + (m_moveSpeed * time));
+        target = new Vector3(target.x, target.y, target.z/* + (m_moveSpeed * time)*/);
 
         Vector3 displacementXZ = new Vector3(target.x - rb.position.x, 0, target.z - rb.position.z);
         Vector3 velocityY = Vector3.up * Mathf.Sqrt(-2 * Physics.gravity.y * h);

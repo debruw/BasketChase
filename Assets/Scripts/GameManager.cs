@@ -69,6 +69,7 @@ public class GameManager : MonoBehaviour
     {
         currentBallcount++;
         currentZDistance -= ((maxZDistance - 2) / maxBallCount);
+        basketPot.transform.DOMove(new Vector3(basketPot.transform.position.x, basketPot.transform.position.y, Player.transform.position.z + currentZDistance), 1);
     }
 
     IEnumerator WaitAndGameWin()
