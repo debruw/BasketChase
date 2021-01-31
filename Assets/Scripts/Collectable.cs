@@ -5,7 +5,8 @@ using UnityEngine;
 public class Collectable : MonoBehaviour
 {
     Rigidbody rb;
-    public GameObject destroyEffect;
+    public GameObject destroyEffect, BallTrail;
+    public PhysicMaterial pm;
 
     private void Start()
     {
@@ -14,7 +15,7 @@ public class Collectable : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if(!GameManager.Instance.isGameStarted)
+        if (!GameManager.Instance.isGameStarted)
         {
             return;
         }
@@ -50,12 +51,18 @@ public class Collectable : MonoBehaviour
         shadow.SetActive(false);
     }
 
+    public void AddPhysicMaterial()
+    {
+        GetComponent<Collider>().material = pm;
+    }
+
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Ground"))
         {
-            Destroy(Instantiate(destroyEffect, transform.position,Quaternion.identity), 1f);
-            Destroy(gameObject);
-        }    
+            GetComponent<Collider>().enabled = false;
+            Destroy(Instantiate(destroyEffect, transform.position, Quaternion.identity), 1f);
+            Destroy(gameObject, 2);
+        }
     }
 }

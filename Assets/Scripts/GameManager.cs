@@ -13,13 +13,14 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get { return _instance; } }
 
     public int currentLevel = 1;
-    int MaxLevelNumber = 10;
+    int MaxLevelNumber = 1;
     public bool isGameStarted;
     public PlayerController Player;
     public BasketPot basketPot;
+    public Camera cam;
 
-    public float maxZDistance = 10;
-    public float maxBallCount = 5;
+    float maxZDistance;
+    public float maxBallCount;
     [HideInInspector]
     public float currentBallcount, currentZDistance;
 
@@ -29,7 +30,6 @@ public class GameManager : MonoBehaviour
     public Button VibrationButton, TapToStartButton;
     public Sprite on, off;
     public Text LevelText;
-    public GameObject TapToLoadButton;
     public GameObject Tutorial1Canvas;
     #endregion
 
@@ -62,17 +62,31 @@ public class GameManager : MonoBehaviour
         }
         currentLevel = PlayerPrefs.GetInt("LevelId");
         LevelText.text = "Level " + currentLevel;
+        maxZDistance = (basketPot.transform.position.z - transform.position.z) - 2;
+        Debug.Log(maxZDistance);
         currentZDistance = maxZDistance;
     }
 
+    float camFow;
     public void AddBall()
     {
         currentBallcount++;
         currentZDistance -= ((maxZDistance - 2) / maxBallCount);
-        basketPot.transform.DOMove(new Vector3(basketPot.transform.position.x, basketPot.transform.position.y, Player.transform.position.z + currentZDistance), 1);
+        camFow = cam.fieldOfView - ((65 - 45) / maxBallCount);
+        cam.DOFieldOfView(camFow, 1);
+        if (currentZDistance > 2)
+        {
+            basketPot.transform.DOMove(new Vector3(basketPot.transform.position.x, basketPot.transform.position.y, Player.transform.position.z + currentZDistance), 1);
+        }
+        else
+        {
+            basketPot.GetComponent<BasketPot>().ActivateRagdoll();
+            isGameStarted = false;
+            StartCoroutine(WaitAndGameWin());
+        }
     }
 
-    IEnumerator WaitAndGameWin()
+    public IEnumerator WaitAndGameWin()
     {
         SoundManager.Instance.StopAllSounds();
         SoundManager.Instance.playSound(SoundManager.GameSounds.Win);

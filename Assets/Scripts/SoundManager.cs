@@ -18,7 +18,8 @@ public class SoundManager : MonoBehaviour
         Lose,
         Win,
         Collect,
-        Splash
+        Splash,
+        Ping
     }
 
     private void Awake()

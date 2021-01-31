@@ -52,7 +52,7 @@ public class SmoothFollow : MonoBehaviour
             return;
 
         Move();
-        Zoom();
+        //Zoom();
     }
 
     private void Zoom()

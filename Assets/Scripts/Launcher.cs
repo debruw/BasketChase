@@ -13,7 +13,7 @@ public class Launcher : MonoBehaviour
     void Start()
     {
         rb.useGravity = false;
-        h = Random.Range(2f, 5f);
+        h = Random.Range(2f, 3f);
     }
 
     public void Launch(Vector3 tr, float m_moveSpeed)

@@ -14,7 +14,7 @@ public class BasketPot : MonoBehaviour
 
     [SerializeField] private float m_moveSpeed = 12;
 
-    public GameObject netCollider;
+    public GameObject netCollider, Hoop;
 
     void Awake()
     {
@@ -32,33 +32,45 @@ public class BasketPot : MonoBehaviour
         netCollider.GetComponent<Collider>().enabled = true;
     }
 
-    private void Update()
-    {
-        if (!GameManager.Instance.isGameStarted)
-        {
-            return;
-        }
-        //if (transform.position.y < -0.121f)
-        //{
-        //    transform.position = new Vector3(transform.position.x, -0.121f, playerTr.position.z + GameManager.Instance.currentZDistance);
-        //}
-    }
-
     public void ActivateRagdoll()
     {
         m_animator.enabled = false;
-        m_rigidBody.isKinematic = true;
-        m_rigidBody.useGravity = false;
+        m_rigidBody.isKinematic = false;
+        m_rigidBody.useGravity = true;
         GetComponent<BoxCollider>().enabled = false;
         foreach (Rigidbody item in ragdollRigidbodies)
         {
-            item.useGravity = true;
-            item.isKinematic = false;
+            if (item.gameObject.GetComponent<MeshCollider>() == null)
+            {
+                item.useGravity = true;
+                item.isKinematic = false;
+                item.velocity = new Vector3(0, 15, 15);
+            }
         }
         foreach (Collider item in ragdollColliders)
         {
-            item.enabled = true;
+            if (item.gameObject.GetComponent<MeshCollider>() == null)
+            {
+                item.enabled = true;
+            }
         }
         metarig.SetActive(true);
+        m_rigidBody.velocity = new Vector3(0, 15, 15);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("FinishLine"))
+        {
+            GameManager.Instance.isGameStarted = false;
+            playerTr.GetComponent<Animator>().SetTrigger("Defeat");
+            SmoothFollow.Instance.isOnFinish = true;
+            GetComponent<Animator>().SetTrigger("Shuffle");
+            if (playerTr.GetComponent<PlayerController>().currentBall != null)
+            {
+                playerTr.GetComponent<PlayerController>().currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
+            }
+            GameManager.Instance.StartCoroutine(GameManager.Instance.WaitAndGameLose());
+        }
     }
 }
