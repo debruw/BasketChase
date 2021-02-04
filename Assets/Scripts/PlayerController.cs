@@ -20,6 +20,7 @@ public class PlayerController : MonoBehaviour
     public Transform ballTarget;
     public GameObject World;
     public Image ForceSlider;
+    public GameObject PowerBar;
 
     public Rigidbody[] ragdollRigidbodies;
     public Collider[] ragdollColliders;
@@ -68,7 +69,7 @@ public class PlayerController : MonoBehaviour
                 if (indicatorPlane.transform.eulerAngles.z < 15 && indicatorPlane.transform.eulerAngles.z > 0 || indicatorPlane.transform.eulerAngles.z < 360 && indicatorPlane.transform.eulerAngles.z > 345)
                 {
                     Debug.LogError("In range");
-                    Time.timeScale = 1f;
+                    StartCoroutine(ScaleTime(.1f, 1f, .5f));
                     //ReleaseBall();
                     waitingForClick = false;
                     GameManager.Instance.basketPot.GetComponent<BasketPot>().ActivateRagdoll();
@@ -80,7 +81,7 @@ public class PlayerController : MonoBehaviour
                 else
                 {
                     Debug.LogError("Not in range");
-                    Time.timeScale = 1f;
+                    StartCoroutine(ScaleTime(.1f, 1f, .5f));
                     Instantiate(EndEffect, transform.position + new Vector3(0, 2, 0), Quaternion.identity);
                     ActivateRagdoll();
                     GameManager.Instance.basketPot.GetComponent<Animator>().SetTrigger("Shuffle");
@@ -173,7 +174,7 @@ public class PlayerController : MonoBehaviour
         }
 
         if (Input.GetMouseButton(0))
-        {
+        {            
             isMovementReleased = false;
             translation = new Vector3(Input.GetAxis("Mouse X"), 0, 0) * Time.deltaTime * Xspeed;
 
@@ -299,7 +300,8 @@ public class PlayerController : MonoBehaviour
             if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount)
             {//Last shot. Make dunk
                 m_animator.SetTrigger("Dunk"); IndicatorAnimator.gameObject.SetActive(true);
-                Time.timeScale = .1f;
+                PowerBar.SetActive(false);
+                StartCoroutine(ScaleTime(1, .1f, .5f));
 
                 //Wait for click on right time
                 StartCoroutine(WaitForClick());
@@ -373,5 +375,20 @@ public class PlayerController : MonoBehaviour
                 item.isKinematic = false;
             }
         }
+    }
+
+    IEnumerator ScaleTime(float start, float end, float time)
+    {
+        float lastTime = Time.realtimeSinceStartup;
+        float timer = 0.0f;
+
+        while (timer < time)
+        {
+            Time.timeScale = Mathf.Lerp(start, end, timer / time);
+            timer += (Time.realtimeSinceStartup - lastTime);
+            lastTime = Time.realtimeSinceStartup;
+            yield return null;
+        }
+        Time.timeScale = end;
     }
 }
