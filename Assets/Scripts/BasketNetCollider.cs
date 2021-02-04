@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using TapticPlugin;
+//using TapticPlugin;
 using UnityEngine;
 
 public class BasketNetCollider : MonoBehaviour
@@ -22,11 +22,12 @@ public class BasketNetCollider : MonoBehaviour
             collision.gameObject.transform.rotation = Quaternion.identity;
             collision.gameObject.transform.localPosition = Vector3.zero;
             collision.gameObject.transform.GetChild(0).transform.localScale = new Vector3(.5f, .5f, .5f);
-            collision.gameObject.GetComponent<Collider>().material = null;
+            collision.gameObject.GetComponent<SphereCollider>().radius = .15f;
+            collision.gameObject.GetComponent<Collider>().material = null;            
             Instantiate(particle, transform.position, particle.transform.rotation, World);
             SoundManager.Instance.playSound(SoundManager.GameSounds.Ping);
-            if (PlayerPrefs.GetInt("VIBRATION") == 1)
-                TapticManager.Impact(ImpactFeedback.Light);
+            //if (PlayerPrefs.GetInt("VIBRATION") == 1)
+            //    TapticManager.Impact(ImpactFeedback.Light);
             GameManager.Instance.AddBall();
         }
     }

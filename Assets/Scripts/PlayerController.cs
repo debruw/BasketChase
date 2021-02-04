@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
-using TapticPlugin;
+//using TapticPlugin;
 using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
@@ -19,12 +19,21 @@ public class PlayerController : MonoBehaviour
     public Camera cam;
     public Transform ballTarget;
     public GameObject World;
-    public Slider ForceSlider;
+    public Image ForceSlider;
+
+    public Rigidbody[] ragdollRigidbodies;
+    public Collider[] ragdollColliders;
+    public GameObject metarig;
 
     void Awake()
     {
-        m_rigidBody.useGravity = true;
-        m_rigidBody.isKinematic = false;
+        ragdollRigidbodies = metarig.GetComponentsInChildren<Rigidbody>();
+        ragdollColliders = metarig.GetComponentsInChildren<Collider>();
+        foreach (Rigidbody item in ragdollRigidbodies)
+        {
+            item.useGravity = false;
+            item.isKinematic = true;
+        }
     }
 
     Vector3 tempFingerPos;
@@ -33,17 +42,56 @@ public class PlayerController : MonoBehaviour
     private Vector3 endPos; //mouse slide movement end pos
     public float zDistance = 30.0f;//z distance
     private bool isThrown;
-    public bool isClickedForBall = false;
+    public bool isClickedForBall = false, isMovementReleased, isClickedForDunk;
+    Touch touch;
+    Vector2 firstPressPos;
+    public Animator IndicatorAnimator;
+    public GameObject indicatorPlane;
+    public GameObject EndEffect;
     void Update()
     {
-        if (!GameManager.Instance.isGameStarted)
+        if (GameManager.Instance.isGameOver || !GameManager.Instance.isGameStarted)
         {
             return;
         }
         World.transform.position -= transform.forward * m_moveSpeed * Time.deltaTime;
-
-        //#if UNITY_EDITOR
-        if (currentBall != null)
+        if (waitingForClick)
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                isClickedForDunk = true;
+            }
+            else if (Input.GetMouseButtonUp(0) && isClickedForDunk)
+            {
+                IndicatorAnimator.enabled = false;
+                Debug.Log("eulerAngles: " + indicatorPlane.transform.eulerAngles.z);
+                if (indicatorPlane.transform.eulerAngles.z < 15 && indicatorPlane.transform.eulerAngles.z > 0 || indicatorPlane.transform.eulerAngles.z < 360 && indicatorPlane.transform.eulerAngles.z > 345)
+                {
+                    Debug.LogError("In range");
+                    Time.timeScale = 1f;
+                    //ReleaseBall();
+                    waitingForClick = false;
+                    GameManager.Instance.basketPot.GetComponent<BasketPot>().ActivateRagdoll();
+                    GameManager.Instance.isGameOver = true;
+                    m_animator.SetTrigger("Shuffle");
+                    Instantiate(EndEffect, GameManager.Instance.basketPot.transform.position + new Vector3(0, 2, 0), Quaternion.identity);
+                    StartCoroutine(GameManager.Instance.WaitAndGameWin());
+                }
+                else
+                {
+                    Debug.LogError("Not in range");
+                    Time.timeScale = 1f;
+                    Instantiate(EndEffect, transform.position + new Vector3(0, 2, 0), Quaternion.identity);
+                    ActivateRagdoll();
+                    GameManager.Instance.basketPot.GetComponent<Animator>().SetTrigger("Shuffle");
+                    StartCoroutine(GameManager.Instance.WaitAndGameLose());
+                    GameManager.Instance.isGameOver = true;
+                }
+            }
+            return;
+        }
+#if UNITY_EDITOR
+        if (currentBall != null && isMovementReleased)
         {
             if (Input.GetMouseButtonDown(0))
             {
@@ -66,7 +114,102 @@ public class PlayerController : MonoBehaviour
                 endPos.z = Camera.main.nearClipPlane; //removing this breaks stuff,no idea why though
 
                 Vector3 throwDir = (startPos - endPos).normalized;//get throw direction based on start and end pos
-                ForceSlider.value = 0;
+                ForceSlider.fillAmount = 0;
+
+                if ((startPos - endPos).y > GameManager.Instance.currentZDistance - 2 && (startPos - endPos).y < GameManager.Instance.currentZDistance + 2)
+                {
+                    if (GameManager.Instance.currentBallcount != GameManager.Instance.maxBallCount)
+                    {
+                        currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
+                        m_animator.SetTrigger("Throw");
+                        ThrowBall(ballTarget.position);
+                        currentBall = null;
+                    }
+                    else if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount)
+                    {//Last shot. Make dunk
+                        m_animator.SetTrigger("Dunk");
+                        Time.timeScale = .1f;
+
+                        //Wait for click on right time
+                        StartCoroutine(WaitForClick());
+
+                        cam.transform.parent.transform.DORotate(new Vector3(0, 90, 0), .5f);
+
+                        if (transform.position.x != 0)
+                        {
+                            transform.DOLocalMoveX(0, 1);
+                        }
+                    }
+                }
+                else if ((startPos - endPos).y < GameManager.Instance.currentZDistance - 2)
+                {
+                    currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
+                    m_animator.SetTrigger("Throw");
+                    ThrowBall(ballTarget.position + new Vector3(0, 0, Random.Range(-5, 2)));
+                    currentBall = null;
+                }
+                else if ((startPos - endPos).y > GameManager.Instance.currentZDistance + 2)
+                {
+                    currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
+                    m_animator.SetTrigger("Throw");
+                    ThrowBall(ballTarget.position + new Vector3(0, 0, Random.Range(2, 5)));
+                    currentBall = null;
+                }
+                isThrown = true;
+            }
+            else if (Input.GetMouseButton(0) && isClickedForBall)
+            {
+                //get release mouse position
+                Vector3 mousePos = Input.mousePosition * -1.0f;
+                mousePos.z = zDistance; //add z distance
+
+                // convert mouse position to world position
+                endPos = Camera.main.ScreenToWorldPoint(mousePos);
+                endPos.z = Camera.main.nearClipPlane; //removing this breaks stuff,no idea why though
+
+                ForceSlider.fillAmount = (startPos - endPos).y / (GameManager.Instance.currentZDistance * 2);
+            }
+            return;
+        }
+
+        if (Input.GetMouseButton(0))
+        {
+            isMovementReleased = false;
+            translation = new Vector3(Input.GetAxis("Mouse X"), 0, 0) * Time.deltaTime * Xspeed;
+
+            transform.Translate(translation, Space.World);
+            transform.localPosition = new Vector3(Mathf.Clamp(transform.localPosition.x, -3f, 3f), transform.localPosition.y, transform.localPosition.z);
+        }
+        else if (Input.GetMouseButtonUp(0))
+        {
+            isMovementReleased = true;
+        }
+#elif UNITY_IOS || UNITY_ANDROID
+        if (currentBall != null && Input.touchCount > 0 && isMovementReleased)
+        {
+            touch = Input.GetTouch(0);
+            if (touch.phase == TouchPhase.Began)
+            {
+                isClickedForBall = true;
+                //get start mouse position
+                Vector3 mousePos = Input.mousePosition * -1.0f;
+                mousePos.z = zDistance; //add z distance
+
+                startPos = Camera.main.ScreenToWorldPoint(mousePos);
+            }
+            else if (touch.phase == TouchPhase.Ended && isClickedForBall)
+            {
+                isClickedForBall = false;
+                //get release mouse position
+                Vector3 mousePos = Input.mousePosition * -1.0f;
+                mousePos.z = zDistance; //add z distance
+
+                // convert mouse position to world position
+                endPos = Camera.main.ScreenToWorldPoint(mousePos);
+                endPos.z = Camera.main.nearClipPlane; //removing this breaks stuff,no idea why though
+
+                Vector3 throwDir = (startPos - endPos).normalized;//get throw direction based on start and end pos
+                ForceSlider.fillAmount = 0;
 
                 if ((startPos - endPos).y > GameManager.Instance.currentZDistance - 2 && (startPos - endPos).y < GameManager.Instance.currentZDistance + 2)
                 {
@@ -100,10 +243,9 @@ public class PlayerController : MonoBehaviour
                     ThrowBall(ballTarget.position + new Vector3(0, 0, Random.Range(2, 5)));
                     currentBall = null;
                 }
-
                 isThrown = true;
             }
-            else if (Input.GetMouseButton(0) && isClickedForBall)
+            else if (touch.phase == TouchPhase.Moved && isClickedForBall)
             {
                 //get release mouse position
                 Vector3 mousePos = Input.mousePosition * -1.0f;
@@ -113,72 +255,30 @@ public class PlayerController : MonoBehaviour
                 endPos = Camera.main.ScreenToWorldPoint(mousePos);
                 endPos.z = Camera.main.nearClipPlane; //removing this breaks stuff,no idea why though
 
-                ForceSlider.value = (startPos - endPos).y / (GameManager.Instance.currentZDistance * 2);
+                ForceSlider.fillAmount = (startPos - endPos).y / (GameManager.Instance.currentZDistance * 2);
             }
             return;
         }
 
-        if (Input.GetMouseButton(0))
+        if (Input.touchCount > 0)
         {
-            translation = new Vector3(Input.GetAxis("Mouse X"), 0, 0) * Time.deltaTime * Xspeed;
-
-            transform.Translate(translation, Space.World);
-            transform.localPosition = new Vector3(Mathf.Clamp(transform.localPosition.x, -3f, 3f), transform.localPosition.y, transform.localPosition.z);
+            touch = Input.GetTouch(0);
+            if (touch.phase == TouchPhase.Moved)
+            {
+                isMovementReleased = false;
+                transform.localPosition = new Vector3(Mathf.Clamp(transform.localPosition.x + touch.deltaPosition.x * 0.01f, -3, 3), transform.localPosition.y, transform.localPosition.z);
+            }
+            else if (touch.phase == TouchPhase.Ended)
+            {
+                isMovementReleased = true;
+            }
+            else if (touch.phase == TouchPhase.Began)
+            {
+                //save began touch 2d point
+                firstPressPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
+            }
         }
-        //#elif UNITY_IOS || UNITY_ANDROID
-        //        if (currentBall != null && Input.touchCount > 0)
-        //        {
-        //            if (Input.GetMouseButtonDown(0))
-        //            {
-        //                //get start mouse position
-        //                Vector3 mousePos = Input.mousePosition * -1.0f;
-        //                mousePos.z = zDistance; //add z distance
-
-        //                startPos = Camera.main.ScreenToWorldPoint(mousePos);
-
-        //                //Print start Pos for debugging
-        //                Debug.Log(startPos);
-        //            }
-
-        //            if (Input.GetMouseButtonUp(0))
-        //            {
-        //                //get release mouse position
-        //                Vector3 mousePos = Input.mousePosition * -1.0f;
-        //                mousePos.z = zDistance; //add z distance
-
-        //                // convert mouse position to world position
-        //                endPos = Camera.main.ScreenToWorldPoint(mousePos);
-        //                endPos.z = Camera.main.nearClipPlane; //removing this breaks stuff,no idea why though
-
-        //                //Print start Pos for debugging
-        //                Debug.Log(endPos);
-
-        //                Vector3 throwDir = (startPos - endPos).normalized;//get throw direction based on start and end pos
-        //                currentBall.GetComponent<Collectable>().ActivateThrowProperties(GetComponent<Collider>());
-        //                currentBall.GetComponent<Rigidbody>().velocity = (throwDir * (startPos - endPos).sqrMagnitude) *.1f;//add force to throw direction*magnitude
-
-        //                isThrown = true;
-        //            }
-
-        //            return;
-        //        }
-
-        //        if (Input.touchCount > 0)
-        //        {
-        //            touch = Input.GetTouch(0);
-        //            if (touch.phase == TouchPhase.Moved)
-        //            {
-        //                transform.position = new Vector3(Mathf.Clamp(transform.position.x + touch.deltaPosition.x * 0.01f, -4, 4), transform.position.y, transform.position.z);
-        //            }
-        //            else if (touch.phase == TouchPhase.Began)
-        //            {
-        //                //save began touch 2d point
-        //                firstPressPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
-        //                GameManager.Instance.Tutorial1Canvas.SetActive(false);
-        //            }
-        //        }
-        //#endif
-
+#endif
     }
 
     public void ThrowBall(Vector3 target)
@@ -193,18 +293,42 @@ public class PlayerController : MonoBehaviour
     public GameObject PickUpParticle;
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("FinishLine"))
-        {
-            //GameManager.Instance.isGameStarted = false;
-            //m_animator.SetTrigger("Defeat");
-            //SmoothFollow.Instance.isOnFinish = true;
-            //GameManager.Instance.basketPot.GetComponent<Animator>().SetTrigger("Shuffle");
-            //currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
-            //GameManager.Instance.StartCoroutine(GameManager.Instance.WaitAndGameLose());
-        }
-        else if (other.CompareTag("Collectable"))
+        if (other.CompareTag("Collectable"))
         {
             Collect(other.gameObject);
+            if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount)
+            {//Last shot. Make dunk
+                m_animator.SetTrigger("Dunk"); IndicatorAnimator.gameObject.SetActive(true);
+                Time.timeScale = .1f;
+
+                //Wait for click on right time
+                StartCoroutine(WaitForClick());
+
+                cam.transform.parent.transform.DORotate(new Vector3(0, 90, 0), .5f);
+
+                if (transform.position.x != 0)
+                {
+                    transform.DOLocalMoveX(0, 1);
+                }
+            }
+        }
+    }
+
+    bool waitingForClick;
+    IEnumerator WaitForClick()
+    {
+        waitingForClick = true;
+        yield return new WaitForSeconds(.5f);
+        waitingForClick = false;
+        if (!GameManager.Instance.isGameOver)
+        {
+            Debug.LogError("Not in range");
+            Time.timeScale = 1f;
+            Instantiate(EndEffect, transform.position + new Vector3(0, 2, 0), Quaternion.identity);
+            ActivateRagdoll();
+            GameManager.Instance.basketPot.GetComponent<Animator>().SetTrigger("Shuffle");
+            StartCoroutine(GameManager.Instance.WaitAndGameLose());
+            GameManager.Instance.isGameOver = true;
         }
     }
 
@@ -213,13 +337,15 @@ public class PlayerController : MonoBehaviour
         if (currentBall == null)
         {
             currentBall = collectable;
-            if (PlayerPrefs.GetInt("VIBRATION") == 1)
-                TapticManager.Impact(ImpactFeedback.Light);
+            //if (PlayerPrefs.GetInt("VIBRATION") == 1)
+            //    TapticManager.Impact(ImpactFeedback.Light);
             SoundManager.Instance.playSound(SoundManager.GameSounds.Collect);
             Destroy(Instantiate(PickUpParticle, collectable.transform.position, Quaternion.identity), 2f);
             collectable.GetComponent<Collectable>().CollectedProperties();
             collectable.transform.parent = CarryObject;
             collectable.GetComponent<Collectable>().BallTrail.SetActive(true);
+            collectable.transform.GetChild(0).transform.localScale = new Vector3(1f, 1f, 1f);
+            collectable.GetComponent<SphereCollider>().radius = .3f;
 
             collectable.transform.localPosition = Vector3.zero;
             collectable.transform.localPosition = new Vector3(0, collectable.transform.localPosition.y, 0);
@@ -231,5 +357,21 @@ public class PlayerController : MonoBehaviour
     {
         currentBall.GetComponent<Collectable>().ThrowedProperties(GetComponent<Collider>());
         currentBall = null;
+    }
+
+    public void ActivateRagdoll()
+    {
+        m_animator.enabled = false;
+        m_rigidBody.isKinematic = false;
+        m_rigidBody.useGravity = true;
+        GetComponent<BoxCollider>().enabled = false;
+        foreach (Rigidbody item in ragdollRigidbodies)
+        {
+            if (item.gameObject.GetComponent<MeshCollider>() == null)
+            {
+                item.useGravity = true;
+                item.isKinematic = false;
+            }
+        }
     }
 }

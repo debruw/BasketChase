@@ -15,7 +15,12 @@ public class Collectable : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (!GameManager.Instance.isGameStarted)
+        if (GameManager.Instance.isGameOver)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
+        else if (!GameManager.Instance.isGameStarted)
         {
             return;
         }
@@ -60,9 +65,9 @@ public class Collectable : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Ground"))
         {
-            GetComponent<Collider>().enabled = false;
-            Destroy(Instantiate(destroyEffect, transform.position, Quaternion.identity), 1f);
-            Destroy(gameObject, 2);
+            //GetComponent<Collider>().enabled = false;  
+            //Destroy(Instantiate(destroyEffect, transform.position, Quaternion.identity), 1f);
+            //Destroy(gameObject, 2);
         }
     }
 }

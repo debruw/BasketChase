@@ -25,10 +25,6 @@ public class BasketPot : MonoBehaviour
             item.useGravity = false;
             item.isKinematic = true;
         }
-        foreach (Collider item in ragdollColliders)
-        {
-            item.enabled = false;
-        }
         netCollider.GetComponent<Collider>().enabled = true;
     }
 
@@ -47,13 +43,6 @@ public class BasketPot : MonoBehaviour
                 item.velocity = new Vector3(0, 15, 15);
             }
         }
-        foreach (Collider item in ragdollColliders)
-        {
-            if (item.gameObject.GetComponent<MeshCollider>() == null)
-            {
-                item.enabled = true;
-            }
-        }
         metarig.SetActive(true);
         m_rigidBody.velocity = new Vector3(0, 15, 15);
     }
@@ -62,9 +51,8 @@ public class BasketPot : MonoBehaviour
     {
         if (other.CompareTag("FinishLine"))
         {
-            GameManager.Instance.isGameStarted = false;
+            GameManager.Instance.isGameOver = true;
             playerTr.GetComponent<Animator>().SetTrigger("Defeat");
-            SmoothFollow.Instance.isOnFinish = true;
             GetComponent<Animator>().SetTrigger("Shuffle");
             if (playerTr.GetComponent<PlayerController>().currentBall != null)
             {

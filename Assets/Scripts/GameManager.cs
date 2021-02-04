@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using DG.Tweening;
-using TapticPlugin;
+//using TapticPlugin;
 
 public class GameManager : MonoBehaviour
 {
@@ -14,7 +14,7 @@ public class GameManager : MonoBehaviour
 
     public int currentLevel = 1;
     int MaxLevelNumber = 1;
-    public bool isGameStarted;
+    public bool isGameStarted, isGameOver;
     public PlayerController Player;
     public BasketPot basketPot;
     public Camera cam;
@@ -78,21 +78,16 @@ public class GameManager : MonoBehaviour
         {
             basketPot.transform.DOMove(new Vector3(basketPot.transform.position.x, basketPot.transform.position.y, Player.transform.position.z + currentZDistance), 1);
         }
-        else
-        {
-            basketPot.GetComponent<BasketPot>().ActivateRagdoll();
-            isGameStarted = false;
-            StartCoroutine(WaitAndGameWin());
-        }
     }
 
     public IEnumerator WaitAndGameWin()
     {
         SoundManager.Instance.StopAllSounds();
         SoundManager.Instance.playSound(SoundManager.GameSounds.Win);
+        Player.IndicatorAnimator.gameObject.SetActive(false);
         yield return new WaitForSeconds(1f);
-        if (PlayerPrefs.GetInt("VIBRATION") == 1)
-            TapticManager.Impact(ImpactFeedback.Light);
+        //if (PlayerPrefs.GetInt("VIBRATION") == 1)
+        //    TapticManager.Impact(ImpactFeedback.Light);
         currentLevel++;
         PlayerPrefs.SetInt("LevelId", currentLevel);
         WinPanel.SetActive(true);
@@ -102,9 +97,10 @@ public class GameManager : MonoBehaviour
     public IEnumerator WaitAndGameLose()
     {
         SoundManager.Instance.playSound(SoundManager.GameSounds.Lose);
+        Player.IndicatorAnimator.gameObject.SetActive(false);
         yield return new WaitForSeconds(.5f);
-        if (PlayerPrefs.GetInt("VIBRATION") == 1)
-            TapticManager.Impact(ImpactFeedback.Light);
+        //if (PlayerPrefs.GetInt("VIBRATION") == 1)
+        //    TapticManager.Impact(ImpactFeedback.Light);
 
         LosePanel.SetActive(true);
         InGamePanel.SetActive(false);
@@ -149,8 +145,8 @@ public class GameManager : MonoBehaviour
             VibrationButton.GetComponent<Image>().sprite = on;
         }
 
-        if (PlayerPrefs.GetInt("VIBRATION") == 1)
-            TapticManager.Impact(ImpactFeedback.Light);
+        //if (PlayerPrefs.GetInt("VIBRATION") == 1)
+        //    TapticManager.Impact(ImpactFeedback.Light);
     }
 
     public void TapToStartButtonClick()
