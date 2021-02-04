@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
 {
     [SerializeField] private float m_moveSpeed = 5;
 
-    [SerializeField] private Animator m_animator;
+    [SerializeField] public Animator m_animator;
     [SerializeField] private Rigidbody m_rigidBody;
 
     private Vector3 translation;
@@ -55,7 +55,27 @@ public class PlayerController : MonoBehaviour
         {
             return;
         }
+
         World.transform.position -= transform.forward * m_moveSpeed * Time.deltaTime;
+
+        if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount && currentBall != null && GameManager.Instance.isReadyForDunk)
+        {
+            m_animator.SetTrigger("Dunk");
+            IndicatorAnimator.gameObject.SetActive(true);
+            PowerBar.SetActive(false);
+            StartCoroutine(ScaleTime(1, .1f, .5f));
+
+            //Wait for click on right time
+            StartCoroutine(WaitForClick());
+
+            cam.transform.parent.transform.DORotate(new Vector3(0, 45, 0), .5f);
+
+            if (transform.position.x != 0)
+            {
+                transform.DOLocalMoveX(0, 1);
+            }
+        }
+
         if (waitingForClick)
         {
             if (Input.GetMouseButtonDown(0))
@@ -65,7 +85,6 @@ public class PlayerController : MonoBehaviour
             else if (Input.GetMouseButtonUp(0) && isClickedForDunk)
             {
                 IndicatorAnimator.enabled = false;
-                Debug.Log("eulerAngles: " + indicatorPlane.transform.eulerAngles.z);
                 if (indicatorPlane.transform.eulerAngles.z < 15 && indicatorPlane.transform.eulerAngles.z > 0 || indicatorPlane.transform.eulerAngles.z < 360 && indicatorPlane.transform.eulerAngles.z > 345)
                 {
                     Debug.LogError("In range");
@@ -126,21 +145,23 @@ public class PlayerController : MonoBehaviour
                         ThrowBall(ballTarget.position);
                         currentBall = null;
                     }
-                    else if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount)
-                    {//Last shot. Make dunk
-                        m_animator.SetTrigger("Dunk");
-                        Time.timeScale = .1f;
+                    //else if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount)
+                    //{//Last shot. Make dunk
+                    //    m_animator.SetTrigger("Dunk");
+                    //    IndicatorAnimator.gameObject.SetActive(true);
+                    //    PowerBar.SetActive(false);
+                    //    StartCoroutine(ScaleTime(1, .1f, .5f));
 
-                        //Wait for click on right time
-                        StartCoroutine(WaitForClick());
+                    //    //Wait for click on right time
+                    //    StartCoroutine(WaitForClick());
 
-                        cam.transform.parent.transform.DORotate(new Vector3(0, 90, 0), .5f);
+                    //    cam.transform.parent.transform.DORotate(new Vector3(0, 45, 0), .5f);
 
-                        if (transform.position.x != 0)
-                        {
-                            transform.DOLocalMoveX(0, 1);
-                        }
-                    }
+                    //    if (transform.position.x != 0)
+                    //    {
+                    //        transform.DOLocalMoveX(0, 1);
+                    //    }
+                    //}
                 }
                 else if ((startPos - endPos).y < GameManager.Instance.currentZDistance - 2)
                 {
@@ -174,7 +195,7 @@ public class PlayerController : MonoBehaviour
         }
 
         if (Input.GetMouseButton(0))
-        {            
+        {
             isMovementReleased = false;
             translation = new Vector3(Input.GetAxis("Mouse X"), 0, 0) * Time.deltaTime * Xspeed;
 
@@ -297,30 +318,31 @@ public class PlayerController : MonoBehaviour
         if (other.CompareTag("Collectable"))
         {
             Collect(other.gameObject);
-            if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount)
-            {//Last shot. Make dunk
-                m_animator.SetTrigger("Dunk"); IndicatorAnimator.gameObject.SetActive(true);
-                PowerBar.SetActive(false);
-                StartCoroutine(ScaleTime(1, .1f, .5f));
+            //if (GameManager.Instance.currentBallcount == GameManager.Instance.maxBallCount)
+            //{//Last shot. Make dunk
+            //    m_animator.SetTrigger("Dunk"); 
+            //    IndicatorAnimator.gameObject.SetActive(true);
+            //    PowerBar.SetActive(false);
+            //    StartCoroutine(ScaleTime(1, .1f, .5f));
 
-                //Wait for click on right time
-                StartCoroutine(WaitForClick());
+            //    //Wait for click on right time
+            //    StartCoroutine(WaitForClick());
 
-                cam.transform.parent.transform.DORotate(new Vector3(0, 90, 0), .5f);
+            //    cam.transform.parent.transform.DORotate(new Vector3(0, 45, 0), .5f);
 
-                if (transform.position.x != 0)
-                {
-                    transform.DOLocalMoveX(0, 1);
-                }
-            }
+            //    if (transform.position.x != 0)
+            //    {
+            //        transform.DOLocalMoveX(0, 1);
+            //    }
+            //}
         }
     }
 
     bool waitingForClick;
-    IEnumerator WaitForClick()
+    public IEnumerator WaitForClick()
     {
         waitingForClick = true;
-        yield return new WaitForSeconds(.5f);
+        yield return new WaitForSeconds(.75f);
         waitingForClick = false;
         if (!GameManager.Instance.isGameOver)
         {

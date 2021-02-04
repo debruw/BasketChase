@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 public class MenuManager : MonoBehaviour
 {
     public int currentLevel;
-    int MaxLevelNumber = 1;
+    int MaxLevelNumber = 2;
     int rand;
 
     // Start is called before the first frame update

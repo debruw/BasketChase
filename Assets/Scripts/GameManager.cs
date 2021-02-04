@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get { return _instance; } }
 
     public int currentLevel = 1;
-    int MaxLevelNumber = 1;
+    int MaxLevelNumber = 2;
     public bool isGameStarted, isGameOver;
     public PlayerController Player;
     public BasketPot basketPot;
@@ -63,21 +63,29 @@ public class GameManager : MonoBehaviour
         currentLevel = PlayerPrefs.GetInt("LevelId");
         LevelText.text = "Level " + currentLevel;
         maxZDistance = (basketPot.transform.position.z - transform.position.z) - 2;
-        Debug.Log(maxZDistance);
         currentZDistance = maxZDistance;
     }
 
     float camFow;
+    public Tween basketPotTween;
+    public bool isReadyForDunk;
     public void AddBall()
     {
         currentBallcount++;
         currentZDistance -= ((maxZDistance - 2) / maxBallCount);
         camFow = cam.fieldOfView - ((65 - 45) / maxBallCount);
         cam.DOFieldOfView(camFow, 1);
-        if (currentZDistance > 2)
-        {
-            basketPot.transform.DOMove(new Vector3(basketPot.transform.position.x, basketPot.transform.position.y, Player.transform.position.z + currentZDistance), 1);
-        }
+        //if (currentZDistance > 2)
+        //{
+        basketPotTween = basketPot.transform.DOMove(new Vector3(basketPot.transform.position.x, basketPot.transform.position.y, Player.transform.position.z + currentZDistance), .75f);
+        //}
+
+        basketPotTween.OnComplete(SetReadyForDunk);
+    }
+
+    void SetReadyForDunk()
+    {
+        isReadyForDunk = true;
     }
 
     public IEnumerator WaitAndGameWin()

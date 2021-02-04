@@ -13,7 +13,6 @@ public class BasketNetCollider : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Collectable") && !collecteds.Contains(collision.gameObject))
         {
-            Debug.Log("Collected");
             collecteds.Add(collision.gameObject);
             collision.gameObject.GetComponent<Collectable>().BallTrail.SetActive(false);
             collision.gameObject.transform.parent = transform;
@@ -23,7 +22,7 @@ public class BasketNetCollider : MonoBehaviour
             collision.gameObject.transform.localPosition = Vector3.zero;
             collision.gameObject.transform.GetChild(0).transform.localScale = new Vector3(.5f, .5f, .5f);
             collision.gameObject.GetComponent<SphereCollider>().radius = .15f;
-            collision.gameObject.GetComponent<Collider>().material = null;            
+            collision.gameObject.GetComponent<Collider>().material = null;
             Instantiate(particle, transform.position, particle.transform.rotation, World);
             SoundManager.Instance.playSound(SoundManager.GameSounds.Ping);
             //if (PlayerPrefs.GetInt("VIBRATION") == 1)
