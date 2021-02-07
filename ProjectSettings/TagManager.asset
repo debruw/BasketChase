@@ -8,6 +8,7 @@ TagManager:
   - Collectable
   - FinishLine
   - HoopNet
+  - Obstacle
   layers:
   - Default
   - TransparentFX
