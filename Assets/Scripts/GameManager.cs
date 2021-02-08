@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get { return _instance; } }
 
     public int currentLevel = 1;
-    int MaxLevelNumber = 2;
+    int MaxLevelNumber = 15;
     public bool isGameStarted, isGameOver;
     public PlayerController Player;
     public BasketPot basketPot;
@@ -30,7 +30,7 @@ public class GameManager : MonoBehaviour
     public Button VibrationButton, TapToStartButton;
     public Sprite on, off;
     public Text LevelText;
-    public GameObject Tutorial1Canvas;
+    public GameObject Tutorial1Canvas, Tutorial2Canvas, Tutorial3Canvas;
     #endregion
 
     private void Awake()
@@ -61,6 +61,7 @@ public class GameManager : MonoBehaviour
             }
         }
         currentLevel = PlayerPrefs.GetInt("LevelId");
+
         LevelText.text = "Level " + currentLevel;
         maxZDistance = (basketPot.transform.position.z - transform.position.z) - 2;
         currentZDistance = maxZDistance;
@@ -162,5 +163,9 @@ public class GameManager : MonoBehaviour
         Player.GetComponent<Animator>().SetTrigger("Start");
         basketPot.GetComponent<Animator>().SetTrigger("Start");
         isGameStarted = true;
+        if (currentLevel == 1 && Tutorial1Canvas != null)
+        {
+            Tutorial1Canvas.SetActive(true);
+        }
     }
 }

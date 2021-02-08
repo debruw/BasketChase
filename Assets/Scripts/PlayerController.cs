@@ -67,6 +67,12 @@ public class PlayerController : MonoBehaviour
                 m_animator.SetTrigger("Dunk");
                 IndicatorAnimator.gameObject.SetActive(true);
                 PowerBar.SetActive(false);
+
+                if (GameManager.Instance.currentLevel == 1 && GameManager.Instance.Tutorial3Canvas != null)
+                {
+                    GameManager.Instance.Tutorial3Canvas.SetActive(true);
+                }
+
                 StartCoroutine(ScaleTime(1, .1f, .5f));
 
                 //Wait for click on right time
@@ -111,9 +117,14 @@ public class PlayerController : MonoBehaviour
                     StartCoroutine(GameManager.Instance.WaitAndGameLose());
                     GameManager.Instance.isGameOver = true;
                 }
+                if (GameManager.Instance.currentLevel == 1 && GameManager.Instance.Tutorial3Canvas != null)
+                {
+                    GameManager.Instance.Tutorial3Canvas.SetActive(false);
+                }
                 if (PlayerPrefs.GetInt("VIBRATION") == 1)
                     TapticManager.Impact(ImpactFeedback.Heavy);
             }
+
             return;
         }
 
@@ -168,6 +179,10 @@ public class PlayerController : MonoBehaviour
                     ThrowBall(ballTarget.position + new Vector3(0, 0, Random.Range(2, 5)));
                     currentBall = null;
                 }
+                if (GameManager.Instance.currentLevel == 1 && GameManager.Instance.Tutorial2Canvas != null)
+                {
+                    GameManager.Instance.Tutorial2Canvas.SetActive(false);
+                }
                 isThrown = true;
             }
             else if (Input.GetMouseButton(0) && isClickedForBall)
@@ -192,6 +207,11 @@ public class PlayerController : MonoBehaviour
 
             transform.Translate(translation, Space.World);
             transform.localPosition = new Vector3(Mathf.Clamp(transform.localPosition.x, -3f, 3f), transform.localPosition.y, transform.localPosition.z);
+
+            if (GameManager.Instance.currentLevel == 1 && GameManager.Instance.Tutorial1Canvas != null)
+            {
+                GameManager.Instance.Tutorial1Canvas.SetActive(false);
+            }
         }
         else if (Input.GetMouseButtonUp(0))
         {
@@ -251,6 +271,10 @@ public class PlayerController : MonoBehaviour
                     currentBall = null;
                 }
                 isThrown = true;
+                if (GameManager.Instance.currentLevel == 1 && GameManager.Instance.Tutorial2Canvas != null)
+                {
+                    GameManager.Instance.Tutorial2Canvas.SetActive(false);
+                }
             }
             else if (touch.phase == TouchPhase.Moved && isClickedForBall)
             {
@@ -274,6 +298,11 @@ public class PlayerController : MonoBehaviour
             {
                 isMovementReleased = false;
                 transform.localPosition = new Vector3(Mathf.Clamp(transform.localPosition.x + touch.deltaPosition.x * 0.01f, -3, 3), transform.localPosition.y, transform.localPosition.z);
+
+                if (GameManager.Instance.currentLevel == 1 && GameManager.Instance.Tutorial1Canvas != null)
+                {
+                    GameManager.Instance.Tutorial1Canvas.SetActive(false);
+                }
             }
             else if (touch.phase == TouchPhase.Ended)
             {
@@ -299,11 +328,17 @@ public class PlayerController : MonoBehaviour
 
     public Transform CarryObject;
     public GameObject PickUpParticle;
+    bool Tutorial2showed;
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Collectable"))
         {
             Collect(other.gameObject);
+            if (GameManager.Instance.currentLevel == 1 && GameManager.Instance.Tutorial2Canvas != null && !Tutorial2showed)
+            {
+                Tutorial2showed = true;
+                GameManager.Instance.Tutorial2Canvas.SetActive(true);
+            }
         }
         else if (other.CompareTag("Obstacle"))
         {
