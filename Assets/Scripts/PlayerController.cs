@@ -78,7 +78,9 @@ public class PlayerController : MonoBehaviour
                 //Wait for click on right time
                 StartCoroutine(WaitForClick());
 
+                cam.GetComponent<SmoothFollow>().enabled = false;
                 cam.transform.parent.transform.DORotate(new Vector3(0, 45, 0), .5f);
+
 
                 if (transform.position.x != 0)
                 {
