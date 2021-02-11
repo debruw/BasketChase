@@ -66,6 +66,7 @@ public class SmoothFollow : MonoBehaviour
         Vector3 centerPoint = GetCenterPoint();
 
         Vector3 newPosition = centerPoint + offset;
+        newPosition = new Vector3(transform.position.x, newPosition.y, transform.position.z);
 
         transform.position = Vector3.SmoothDamp(transform.position, newPosition, ref velocity, smoothsTime);
     }
